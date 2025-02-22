@@ -13,31 +13,6 @@ Mybatis 3.4.6 이하 버전에서 개발되었으며 3.2이하에서는 프로�
 현재 내부에서 sqlSessionTemplate을 DI받아 사용하기 때문에 복수의 DB로 구성된 시스템은 고려하지 않고 구현되었다.
 
 ## 사용예제
-### 의존성 추가
-##### Gradle Kotlin DSL
-```
-implementation("com.github.oct24th:batisty:x.x.x")
-implementation("com.github.oct24th:batisty:x.x.x:javadoc")
-```
-##### Gradle Groovy DSL
-```
-implementation 'com.github.oct24th:batisty:x.x.x'
-implementation 'com.github.oct24th:batisty:x.x.x:javadoc'
-```
-##### Apache Maven
-```
-<dependency>
-  <groupId>com.github.oct24th</groupId>
-  <artifactId>batisty</artifactId>
-  <version>x.x.x</version>
-</dependency>
-<dependency>
-    <groupId>com.github.oct24th</groupId>
-    <artifactId>batisty</artifactId>
-    <version>x.x.x</version>
-    <classifier>javadoc</classifier>
-</dependency>
-```
 ### Batisty Bean 스캔
 Springboot 어플리케이션의 시작지점이 되는 Main 클래스의 @SpringBootApplication에 scanBasePackages 설정 필요
 
