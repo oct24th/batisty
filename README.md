@@ -16,11 +16,11 @@ Mybatis 3.4.6 이하 버전에서 개발되었으며 3.2이하에서는 프로�
 ### Batisty Bean 스캔
 Springboot 어플리케이션의 시작지점이 되는 Main 클래스의 @SpringBootApplication에 scanBasePackages 설정 필요
 
-해당 설정의 디폴트는 Main 클래스가 위치한 패키지이기 때문에 **com.github.oct24th.batisty**를 추가해주어야 Batisty에서 사용하는 Bean을 스캔한다.
+해당 설정의 디폴트는 Main 클래스가 위치한 패키지이기 때문에 **io.github.oct24th.batisty**를 추가해주어야 Batisty에서 사용하는 Bean을 스캔한다.
 ```
 package com.example.demo;
 
-@SpringBootApplication(scanBasePackages = {"com.example.demo", "com.github.oct24th.batisty"})  //기본패키지에 com.github.oct24th.batisty 추가
+@SpringBootApplication(scanBasePackages = {"com.example.demo", "io.github.oct24th.batisty"})  //기본패키지에 io.github.oct24th.batisty 추가
 public class DemoApplication {
     public static void main(String[] args) {
         SpringApplication.run(DemoApplication.class, args);
