@@ -1,5 +1,8 @@
+import com.vanniktech.maven.publish.SonatypeHost
+
 plugins {
 	java
+	id("com.vanniktech.maven.publish") version "0.31.0"
 }
 
 group = "io.github.oct24th"
@@ -7,6 +10,8 @@ version = "2.0.0"
 
 java {
 	sourceCompatibility = JavaVersion.VERSION_11
+//	withJavadocJar()
+	withSourcesJar()
 }
 
 configurations {
@@ -31,10 +36,6 @@ dependencies {
 	annotationProcessor("org.projectlombok:lombok:1.18.26")
 }
 
-java {
-	withJavadocJar()
-}
-
 tasks.withType<Javadoc> {
 	val options = options as StandardJavadocDocletOptions;
 	options.locale = "ko_KR"
@@ -43,11 +44,47 @@ tasks.withType<Javadoc> {
 	options.docEncoding = "UTF-8"
 }
 
-tasks.register<Jar>("sourcesJar") {
-	archiveClassifier.set("sources")
-	from(sourceSets.main.get().allSource)
+tasks.register<Jar>("javadocJar") {
+	archiveClassifier.set("javadoc")
+	from(tasks.javadoc)
 }
 
-artifacts {
-	add("archives", tasks["sourcesJar"])
+mavenPublishing {
+	coordinates( // Coordinate(GAV)
+		groupId = "io.github.oct24th",
+		artifactId = "batisty",
+		version = "2.0.0"
+	)
+
+	pom {
+		name.set("batisty") // Project Name
+		description.set("Mybatis Common DAO based on POJO Entity.") // Project Description
+		inceptionYear.set("2025") // 개시년도
+		url.set("https://github.com/oct24th/batisty") // Project URL
+
+		licenses { // License Information
+			license {
+				name.set("The Apache License, Version 2.0")
+				url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+			}
+		}
+
+		developers { // Developer Information
+			developer {
+				id.set("oct24th")
+				name.set("oct24th")
+				email.set("oct24th@daum.net")
+			}
+		}
+
+		scm { // SCM Information
+			connection.set("scm:git:git://github.com/oct24th/batisty.git")
+			developerConnection.set("scm:git:ssh://github.com/oct24th/batisty.git")
+			url.set("https://github.com/oct24th/batisty.git")
+		}
+	}
+
+	publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+
+	signAllPublications() // GPG/PGP 서명
 }
