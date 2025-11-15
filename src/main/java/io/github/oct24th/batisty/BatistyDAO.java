@@ -5,6 +5,8 @@ import io.github.oct24th.batisty.common.Executable;
 import io.github.oct24th.batisty.common.ExecutableResultKind;
 import io.github.oct24th.batisty.common.Function;
 import io.github.oct24th.batisty.common.Procedure;
+import io.github.oct24th.batisty.paging.EnhancedRowBounds;
+import io.github.oct24th.batisty.paging.PagingResult;
 import io.github.oct24th.batisty.sql.SqlCommandKind;
 import io.github.oct24th.batisty.sql.SqlProvider;
 import io.github.oct24th.batisty.proxy.*;
@@ -246,6 +248,22 @@ public class BatistyDAO {
         consumer.accept(function);
         return execute(SqlCommandKind.FUNCTION, function);
     }
+
+
+    //TODO 런타임에 익명함수로 처리되는 func에서 mapper객체의 namespace와 sql id를 알아낼수없다.
+    //java.util.function.Function 이 아닌 별도의 functional interface를 구현해서 해결했었는데 기어거이 잘 안난다 나중에 다시...
+    public <T> PagingResult<T> getPage(java.util.function.Function<Object, List<T>> func, Object param, int pageNo, int pageSize) {
+
+        int offset = (pageNo - 1) * pageSize;
+        EnhancedRowBounds rowBounds = new EnhancedRowBounds(offset, pageSize);
+        List<T> list = sqlSessionTemplate.selectList("", param, rowBounds);
+
+        int totalCount = rowBounds.getTotalCount();
+        int lastPageNo = (int) Math.ceil((double) totalCount / pageSize);
+
+        return new PagingResult<>(totalCount, lastPageNo, list);
+    }
+
 
     @SuppressWarnings("unchecked")
     private <K extends Executable<T>, T> T execute(SqlCommandKind sqlCommandKind, K executable) {

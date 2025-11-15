@@ -8,7 +8,7 @@ Batisty에의해 생성되는 SQL은 해당 CRUD 코드가 최초 실행될때 M
 MappedStatement에 저장된 SQL은 Mybatis의 기본기능인 XML 혹은 method annotaion을 통해 등록된 SQL과 동일하게 Mybatis에 의해 관리, 실행 된다.
 
 ## 제약사항
-Mybatis 3.4.6 이하 버전에서 개발되었으며 3.2이하에서는 프로시저 호출시 오류가 발생할 것으로 예상된다.
+Mybatis 3.4.6 버전에서 개발되었으며 3.2이하에서는 프로시저 호출시 오류가 발생할 것으로 예상된다.
 
 현재 내부에서 sqlSessionTemplate을 DI받아 사용하기 때문에 복수의 DB로 구성된 시스템은 고려하지 않고 구현되었다.
 
