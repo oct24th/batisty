@@ -7,9 +7,10 @@ import io.github.oct24th.batisty.common.Function;
 import io.github.oct24th.batisty.common.Procedure;
 import io.github.oct24th.batisty.paging.EnhancedRowBounds;
 import io.github.oct24th.batisty.paging.PagingResult;
+import io.github.oct24th.batisty.paging.SerializableFunction;
+import io.github.oct24th.batisty.proxy.*;
 import io.github.oct24th.batisty.sql.SqlCommandKind;
 import io.github.oct24th.batisty.sql.SqlProvider;
-import io.github.oct24th.batisty.proxy.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.builder.SqlSourceBuilder;
 import org.apache.ibatis.mapping.MappedStatement;
@@ -19,8 +20,13 @@ import org.apache.ibatis.mapping.SqlSource;
 import org.apache.ibatis.session.Configuration;
 import org.mybatis.spring.SqlSessionTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.beans.PropertyDescriptor;
+import java.lang.invoke.SerializedLambda;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Consumer;
 
@@ -32,6 +38,12 @@ import java.util.function.Consumer;
 @Slf4j
 @Component
 public class BatistyDAO {
+
+    @Value("${batisty.param.currentPage:currentPage}")
+    private String CURRENT_PAGE;
+
+    @Value("${batisty.param.rowCountPerPage:rowCountPerPage}")
+    private String ROW_COUNT_PER_PAGE;
 
     private final Configuration myBatisConfig;
     private final AbstractAutoAudit[] autoAuditExecutors;
@@ -169,7 +181,7 @@ public class BatistyDAO {
      *    t.setParam1(12);
      *    t.setParam2("tttt");
      *
-     *    String r2 = commonDAO.execute(t);
+     *    String r2 = batistyDAO.execute(t);
      *
      *    System.out.println(r2);
      *    System.out.println(t.getParam2()); //out변수
@@ -187,7 +199,7 @@ public class BatistyDAO {
     /**
      * <pre>
      * ex)
-     *    String r2 = commonDAO.execute(new ExampleProcedure(), t -&gt; {
+     *    String r2 = batistyDAO.execute(new ExampleProcedure(), t -&gt; {
      *        t.setParam1(12);
      *        t.setParam2("tttt");
      *    });
@@ -213,7 +225,7 @@ public class BatistyDAO {
      *    t.setParam1(12);
      *    t.setParam2("tttt");
      *
-     *    String r2 = commonDAO.execute(t);
+     *    String r2 = batistyDAO.execute(t);
      *
      *    System.out.println(r2);
      * </pre>
@@ -231,7 +243,7 @@ public class BatistyDAO {
     /**
      * <pre>
      * ex)
-     *    String r2 = commonDAO.execute(new ExampleFunction(), t -&gt; {
+     *    String r2 = batistyDAO.execute(new ExampleFunction(), t -&gt; {
      *        t.setParam1(12);
      *        t.setParam2("tttt");
      *    });
@@ -250,18 +262,89 @@ public class BatistyDAO {
     }
 
 
-    //TODO 런타임에 익명함수로 처리되는 func에서 mapper객체의 namespace와 sql id를 알아낼수없다.
-    //java.util.function.Function 이 아닌 별도의 functional interface를 구현해서 해결했었는데 기어거이 잘 안난다 나중에 다시...
-    public <T> PagingResult<T> getPage(java.util.function.Function<Object, List<T>> func, Object param, int pageNo, int pageSize) {
+    /**
+     * <pre>
+     * ex) PagingResult&lt;MenuDto&gt; result = batistyDAO.getPage(menuDao::selectMenuList, param);
+     * List&lt;MenuDto&gt; data = result.getData();
+     * int totalCount = result.getTotalCount();
+     * int rowOffset = result.getRowOffset();
+     * int lastPageNo = result.getLastPageNo();
+     * </pre>
+     * @param func mybatis mapper dao의 select 쿼리에 해당하는 메소드 람다식
+     * @param param 쿼리에 사용할 파라미터
+     * @return PagingResult
+     * @param <T> 쿼리결과를 처리하는 result type (xml에 지정하는 resultType과 동일)
+     */
+    public <T> PagingResult<T> getPage(SerializableFunction<Object, List<T>> func, Object param) {
 
-        int offset = (pageNo - 1) * pageSize;
-        EnhancedRowBounds rowBounds = new EnhancedRowBounds(offset, pageSize);
-        List<T> list = sqlSessionTemplate.selectList("", param, rowBounds);
+        EnhancedRowBounds rowBounds = this.getRowBounds(param);
 
-        int totalCount = rowBounds.getTotalCount();
-        int lastPageNo = (int) Math.ceil((double) totalCount / pageSize);
+        try {
+            Method writeReplace = func.getClass().getDeclaredMethod("writeReplace");
+            writeReplace.setAccessible(true);
+            Object form = writeReplace.invoke(func);
 
-        return new PagingResult<>(totalCount, lastPageNo, list);
+            if(form instanceof SerializedLambda lambda) {
+                String nameSpace = lambda.getImplClass().replace("/", ".");
+                String statementId = nameSpace + "." + lambda.getImplMethodName();
+
+                List<T> list = sqlSessionTemplate.selectList(statementId, param, rowBounds);
+
+                return PagingResult.<T>builder()
+                        .data(list)
+                        .totalCount(rowBounds.getTotalCount())
+                        .rowOffset(rowBounds.getRowOffset())
+                        .lastPageNo(rowBounds.getLastPageNo())
+                        .build();
+            }
+
+            return PagingResult.<T>builder().data(new ArrayList<>()).build();
+
+        }catch (Exception e) {
+            log.debug(e.getMessage());
+            throw new RuntimeException(e);
+        }
+    }
+
+    private EnhancedRowBounds getRowBounds(Object param) {
+
+        int currentPage,rowCountPerPage;
+
+        if(param instanceof Map<?, ?> map){
+            currentPage = map.containsKey(CURRENT_PAGE) ? (int) map.get(CURRENT_PAGE) : 1;
+            rowCountPerPage = map.containsKey(ROW_COUNT_PER_PAGE) ? (int) map.get(ROW_COUNT_PER_PAGE) : 100;
+        }else{
+            currentPage = (int) this.readObjectProperty(param, CURRENT_PAGE, 1);
+            rowCountPerPage = (int) this.readObjectProperty(param, ROW_COUNT_PER_PAGE, 100);
+        }
+
+        return new EnhancedRowBounds((currentPage - 1) * rowCountPerPage, rowCountPerPage);
+    }
+
+    private Object readObjectProperty(Object obj, String propertyName, Object defaultValue){
+        try {
+            Class<?> clazz = obj.getClass();
+
+            Method getter = clazz.isRecord() ? clazz.getMethod(propertyName)
+                    : new PropertyDescriptor(propertyName, clazz).getReadMethod();
+
+            if(getter != null) return getter.invoke(obj);
+
+            Field field;
+
+            try {
+                field = clazz.getField(propertyName);
+            }catch (NoSuchFieldException e) {
+                field = clazz.getDeclaredField(propertyName);
+                field.setAccessible(true);
+            }
+
+            return field.get(obj);
+
+        } catch (Exception e) {
+            log.debug(e.getMessage());
+            return defaultValue;
+        }
     }
 
 

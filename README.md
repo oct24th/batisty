@@ -8,7 +8,7 @@ Batisty에의해 생성되는 SQL은 해당 CRUD 코드가 최초 실행될때 M
 MappedStatement에 저장된 SQL은 Mybatis의 기본기능인 XML 혹은 method annotaion을 통해 등록된 SQL과 동일하게 Mybatis에 의해 관리, 실행 된다.
 
 ## 제약사항
-Mybatis 3.4.6 버전에서 개발되었으며 3.2이하에서는 프로시저 호출시 오류가 발생할 것으로 예상된다.
+jdk17 이상, Mybatis 3.4.6 버전에서 개발되었으며 3.2이하에서는 프로시저 호출시 오류가 발생할 것으로 예상된다.
 
 현재 내부에서 sqlSessionTemplate을 DI받아 사용하기 때문에 복수의 DB로 구성된 시스템은 고려하지 않고 구현되었다.
 
@@ -157,9 +157,71 @@ public class InsertAudit extends AbstractAutoAudit {
     }
 }
 ```
+### 페이징 설정
+1. Mybatis plugin: PreparedStatementInterceptor
+
+    springboot 자동설정을 사용하지 않고 별도의 설정을 가져가는 경우 mybatis에 를 plugin으로 등록하는 설정이 필요하다
+    
+    (만약 자동설정을 사용할 경우 plugin은 자동으로 등록된다.)
+
+
+2. RowBoundsSqlWrapper 인터페이스
+
+    DB가 오라클 12c이상 혹은 SqlServer인경우 별도의 구현이 필요없으며 BasicRowBoundsSqlWrapper 가 사용된다.
+    
+    만약 DB의 종류나 버전이 다를경우 페이징을위해 wrapping 하는 쿼리가 달라지므로 RowBoundsSqlWrapper 인터페이스를 implement하여
+    
+    String getTotalCountSql(String originalSql);
+    
+    String getPagingSql(String originalSql, int offset, int limit)
+    
+    두개의 메소드를 구현하고 @Component @Primary로 bean으로 등록 해주면 BasicRowBoundsSqlWrapper 대신 해당 bean이 사용된다.
+
+
+3. 페이지번호 파라미터명 설정
+
+    페이지번호를 처리하는 파라미터의 이름으로 currentPage, rowCountPerPage 가 사용된다.
+    
+    만약 변경을 원할경우 application.properties 설정파일에 다음과 같이 설정하여 변경 할수 있다. 
+
+    batisty.param.currentPage=pageNo
+
+    batisty.param.rowCountPerPage=pageSize
+
+```
+// plugin설정: xml 방식
+ <plugins>
+    <plugin interceptor="io.github.oct24th.batisty.proxy.PreparedStatementInterceptor"/>
+ </plugins>
+ 
+// plugin설정: @Configuration 방식
+@Configuration
+public class MyBatisConfig {
+    ...
+    @Bean
+    public SqlSessionFactory sqlSessionFactory(DataSource dataSource, PreparedStatementInterceptor plugin) throws Exception {
+            SqlSessionFactoryBean factoryBean = new SqlSessionFactoryBean();
+            ...
+            factoryBean.setPlugins({ plugin });
+            ...
+            return factoryBean.getObject();
+    }
+    ...
+} 
+```
+
+
+
 ### BatistyDAO 사용
 Spring의 Service에서 BatistyDAO를 DI받아서 사용한다.
 ```
+//데이터 페이징(DB)
+PagingResult<MenuDto> result = batistyDAO.getPage(menuDao::selectMenuList, param);
+List<MenuDto> data = result.getData();
+int totalCount = result.getTotalCount();
+int rowOffset = result.getRowOffset();
+int lastPageNo = result.getLastPageNo();
+
 //insert
 int z = batistyDAO.insert(TbCategory.class, t -> {
     t.setCategoryCd("a");
