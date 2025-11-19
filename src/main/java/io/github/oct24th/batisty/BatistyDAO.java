@@ -31,9 +31,11 @@ import java.util.*;
 import java.util.function.Consumer;
 
 /**
- * Batisty 공통 DAO<br>
- * Java객체기반으로 단순 CRUD 쿼리 및 PROCEDURE, FUNCTION을 실행하는 구문이 최초 호출될 때<br>
- * SQL을 생성하여 Mybatis의 MappedStatement로 등록하고 등록된 MappedStatement는 sqlSessionTemplate을 이용해서 실행한다.
+ * <pre>
+ * Batisty 공통 DAO
+ *  * Java객체기반으로 단순 CRUD 쿼리 및 PROCEDURE, FUNCTION을 실행하는 구문이 최초 호출될 때
+ *  * SQL을 생성하여 Mybatis의 MappedStatement로 등록하고 등록된 MappedStatement는 sqlSessionTemplate을 이용해서 실행한다.
+ * </pre>
  */
 @Slf4j
 @Component
@@ -284,7 +286,8 @@ public class BatistyDAO {
             writeReplace.setAccessible(true);
             Object form = writeReplace.invoke(func);
 
-            if(form instanceof SerializedLambda lambda) {
+            if(form instanceof SerializedLambda) {
+                SerializedLambda lambda = (SerializedLambda) form;
                 String nameSpace = lambda.getImplClass().replace("/", ".");
                 String statementId = nameSpace + "." + lambda.getImplMethodName();
 
@@ -310,7 +313,8 @@ public class BatistyDAO {
 
         int currentPage,rowCountPerPage;
 
-        if(param instanceof Map<?, ?> map){
+        if(param instanceof Map<?, ?>){
+            Map<?, ?> map = (Map<?, ?>) param;
             currentPage = map.containsKey(CURRENT_PAGE) ? (int) map.get(CURRENT_PAGE) : 1;
             rowCountPerPage = map.containsKey(ROW_COUNT_PER_PAGE) ? (int) map.get(ROW_COUNT_PER_PAGE) : 100;
         }else{
@@ -325,8 +329,10 @@ public class BatistyDAO {
         try {
             Class<?> clazz = obj.getClass();
 
-            Method getter = clazz.isRecord() ? clazz.getMethod(propertyName)
-                    : new PropertyDescriptor(propertyName, clazz).getReadMethod();
+            //Method getter = clazz.isRecord() ? clazz.getMethod(propertyName)
+            //        : new PropertyDescriptor(propertyName, clazz).getReadMethod();
+
+            Method getter = new PropertyDescriptor(propertyName, clazz).getReadMethod();
 
             if(getter != null) return getter.invoke(obj);
 
