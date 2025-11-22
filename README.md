@@ -235,7 +235,7 @@ public class MyBatisConfig {
 Spring의 Service에서 BatistyDAO를 DI받아서 사용한다.
 ```
 //데이터 페이징(DB)
-PagingResult<MenuDto> result = batistyDAO.getPage(menuDao::selectMenuList, param);
+PagingResult<MenuDto> result = batistyDAO.selectPage(menuDao::selectMenuList, param);
 List<MenuDto> data = result.getData();
 int totalCount = result.getTotalCount();
 int rowOffset = result.getRowOffset();
