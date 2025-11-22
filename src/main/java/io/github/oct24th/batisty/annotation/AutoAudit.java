@@ -1,6 +1,6 @@
 package io.github.oct24th.batisty.annotation;
 
-import io.github.oct24th.batisty.audit.AuditTiming;
+import io.github.oct24th.batisty.enums.AuditTiming;
 
 import java.lang.annotation.*;
 

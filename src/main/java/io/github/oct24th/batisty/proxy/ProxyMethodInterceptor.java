@@ -3,7 +3,8 @@ package io.github.oct24th.batisty.proxy;
 import io.github.oct24th.batisty.annotation.Ignore;
 import io.github.oct24th.batisty.common.DataContainer;
 import io.github.oct24th.batisty.common.DataStore;
-import io.github.oct24th.batisty.sql.SqlCommandKind;
+import io.github.oct24th.batisty.enums.SqlCommandKind;
+import io.github.oct24th.batisty.util.Utils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cglib.proxy.MethodInterceptor;
 import org.springframework.cglib.proxy.MethodProxy;
@@ -63,8 +64,9 @@ public class ProxyMethodInterceptor implements MethodInterceptor {
                         hash.append("&").append(dc.getOperator()).append(key);
                     })
                 );
-
-                return sb.append(this.generateId(hash.toString())).toString();
+                CharSequence statementId = sb.append(this.complexHash(hash.toString()));
+                log.debug("===> statementId: {}", statementId);
+                return statementId.toString();
             case "equal":
                 operator = "=";
                 return obj;
@@ -90,43 +92,25 @@ public class ProxyMethodInterceptor implements MethodInterceptor {
                 operator = ">=";
                 return obj;
             default:
-                String propertyName = StringUtils.uncapitalize(methodName.replaceFirst("set", ""));
-                Field field = this.findField(obj.getClass(), propertyName);
-                if(!field.isAnnotationPresent(Ignore.class)){
-                    DataContainer dc = new DataContainer(field, operator, objects[0]);
-                    DataStore ds = dataStores.get(storeIdx);
-                    ds.put(storeIdx + propertyName, dc);
-                    operator = "";
+                if(methodName.startsWith("set")) {
+                    String propertyName = StringUtils.uncapitalize(methodName.replaceFirst("set", ""));
+                    Field field = Utils.findField(obj.getClass(), propertyName);
+                    if(!field.isAnnotationPresent(Ignore.class)){
+                        DataContainer dc = new DataContainer(field, operator, objects[0]);
+                        DataStore ds = dataStores.get(storeIdx);
+                        ds.put(storeIdx + propertyName, dc);
+                        operator = "";
+                    }
                 }
+
                 return methodProxy.invokeSuper(obj, objects);
         }
     }
 
-    public <T> Field findField(Class<T> type, String fieldName){
-        try {
-            return type.getDeclaredField(fieldName);
-        } catch (NoSuchFieldException e) {
-            Class<?> parent = type.getSuperclass();
-            if(parent == Object.class) throw new RuntimeException(e);
-            else return findField(parent, fieldName);
-        }
-    }
-
-    private byte[] sha256Hash(String input){
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            return md.digest(input.getBytes(StandardCharsets.UTF_8));
-        } catch (Exception e) {
-            throw new RuntimeException("SHA-256 error", e);
-        }
-    }
-
-    private String generateId(String input) {
-        byte[] shaBytes = sha256Hash(input);
+    private String complexHash(String input) {
+        byte[] shaBytes = Utils.sha256Hash(input);
         byte[] truncated = new byte[16];
         System.arraycopy(shaBytes, 0, truncated, 0, 16);
-        String result = Base64.getUrlEncoder().withoutPadding().encodeToString(truncated) + String.format("%08x", input.hashCode());
-        log.debug("statementId generate info {} => {}", input, result);
-        return result;
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(truncated) + String.format("%08x", input.hashCode());
     }
 }

@@ -1,4 +1,4 @@
-package io.github.oct24th.batisty.audit;
+package io.github.oct24th.batisty.enums;
 
 /**
  * Auto Audit 시점

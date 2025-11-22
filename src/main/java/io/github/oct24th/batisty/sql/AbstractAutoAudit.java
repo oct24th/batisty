@@ -1,17 +1,16 @@
-package io.github.oct24th.batisty.audit;
+package io.github.oct24th.batisty.sql;
 
 import io.github.oct24th.batisty.annotation.AutoAudit;
-import io.github.oct24th.batisty.sql.BatistyNamingConverterFactory;
-import io.github.oct24th.batisty.sql.SqlCommandKind;
+import io.github.oct24th.batisty.enums.AuditTiming;
+import io.github.oct24th.batisty.enums.SqlCommandKind;
+import io.github.oct24th.batisty.util.Utils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.beans.IntrospectionException;
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Audit 자동 완성을 처리하는 추상 클래스<br>
@@ -74,7 +73,7 @@ public abstract class AbstractAutoAudit {
     public void execute(Object target) {
 
         Class<?> type = target.getClass();
-        List<Field> fields = this.getAllField(type);
+        List<Field> fields = Utils.getAllFields(type);
 
         fields.forEach(field -> {
             AutoAudit annotation = field.getAnnotation(AutoAudit.class);
@@ -92,21 +91,6 @@ public abstract class AbstractAutoAudit {
                 log.debug(e.getMessage());
             }
         });
-    }
-
-    /**
-     * 대상 타입의 상속 구조에서 Object 아래까지 추적하면서 모든 Field를 찾아 List로 리턴한다.
-     * @param type 대상타입
-     * @return 필드 리스트
-     */
-    public List<Field> getAllField(Class<?> type){
-        List<Field> list = Arrays.stream(type.getDeclaredFields())
-                .collect(Collectors.toList());
-
-        Class<?> parent = type.getSuperclass();
-        if(parent != Object.class) list.addAll(this.getAllField(parent));
-
-        return list;
     }
 
     private static class Invalidity {

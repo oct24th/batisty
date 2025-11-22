@@ -1,4 +1,4 @@
-package io.github.oct24th.batisty.common;
+package io.github.oct24th.batisty.enums;
 
 /**
  * 프로시저, 함수의 리턴에 따른 구분<br>

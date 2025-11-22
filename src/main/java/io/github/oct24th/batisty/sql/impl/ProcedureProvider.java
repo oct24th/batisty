@@ -3,7 +3,7 @@ package io.github.oct24th.batisty.sql.impl;
 import io.github.oct24th.batisty.common.Executable;
 import io.github.oct24th.batisty.sql.BatistyNamingConverter;
 import io.github.oct24th.batisty.sql.BatistyNamingConverterFactory;
-import io.github.oct24th.batisty.sql.SqlCommandKind;
+import io.github.oct24th.batisty.enums.SqlCommandKind;
 import io.github.oct24th.batisty.sql.SqlProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
