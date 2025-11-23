@@ -53,7 +53,7 @@ mavenPublishing {
 	coordinates( // Coordinate(GAV)
 		groupId = "io.github.oct24th",
 		artifactId = "batisty",
-		version = "2.0.0"
+		version = "3.0.0"
 	)
 
 	pom {
