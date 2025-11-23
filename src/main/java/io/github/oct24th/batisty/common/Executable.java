@@ -2,8 +2,9 @@ package io.github.oct24th.batisty.common;
 
 
 import io.github.oct24th.batisty.annotation.Param;
+import io.github.oct24th.batisty.enums.ExecutableResultKind;
 import io.github.oct24th.batisty.proxy.StatementIdSupplier;
-import io.github.oct24th.batisty.sql.SqlCommandKind;
+import io.github.oct24th.batisty.enums.SqlCommandKind;
 import lombok.Getter;
 import org.apache.ibatis.javassist.ClassPool;
 import org.apache.ibatis.javassist.CtClass;

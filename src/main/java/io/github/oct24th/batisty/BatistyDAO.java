@@ -1,35 +1,55 @@
 package io.github.oct24th.batisty;
 
-import io.github.oct24th.batisty.audit.AbstractAutoAudit;
-import io.github.oct24th.batisty.common.Executable;
-import io.github.oct24th.batisty.common.ExecutableResultKind;
-import io.github.oct24th.batisty.common.Function;
-import io.github.oct24th.batisty.common.Procedure;
-import io.github.oct24th.batisty.sql.SqlCommandKind;
-import io.github.oct24th.batisty.sql.SqlProvider;
+import io.github.oct24th.batisty.annotation.SelectKey;
+import io.github.oct24th.batisty.annotation.UseGeneratedKeys;
+import io.github.oct24th.batisty.sql.AbstractAutoAudit;
+import io.github.oct24th.batisty.common.*;
+import io.github.oct24th.batisty.enums.ExecutableResultKind;
+import io.github.oct24th.batisty.paging.EnhancedRowBounds;
+import io.github.oct24th.batisty.paging.PagingResult;
+import io.github.oct24th.batisty.paging.SerializableFunction;
 import io.github.oct24th.batisty.proxy.*;
+import io.github.oct24th.batisty.enums.SqlCommandKind;
+import io.github.oct24th.batisty.sql.SqlProvider;
+import io.github.oct24th.batisty.util.Utils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.builder.SqlSourceBuilder;
+import org.apache.ibatis.executor.keygen.Jdbc3KeyGenerator;
+import org.apache.ibatis.executor.keygen.SelectKeyGenerator;
 import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.mapping.ResultMap;
 import org.apache.ibatis.mapping.SqlCommandType;
 import org.apache.ibatis.mapping.SqlSource;
+import org.apache.ibatis.scripting.defaults.RawSqlSource;
 import org.apache.ibatis.session.Configuration;
 import org.mybatis.spring.SqlSessionTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.beans.PropertyDescriptor;
+import java.lang.invoke.SerializedLambda;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Consumer;
 
 /**
- * Batisty 공통 DAO<br>
- * Java객체기반으로 단순 CRUD 쿼리 및 PROCEDURE, FUNCTION을 실행하는 구문이 최초 호출될 때<br>
- * SQL을 생성하여 Mybatis의 MappedStatement로 등록하고 등록된 MappedStatement는 sqlSessionTemplate을 이용해서 실행한다.
+ * <pre>
+ * Batisty 공통 DAO
+ *  * Java객체기반으로 단순 CRUD 쿼리 및 PROCEDURE, FUNCTION을 실행하는 구문이 최초 호출될 때
+ *  * SQL을 생성하여 Mybatis의 MappedStatement로 등록하고 등록된 MappedStatement는 sqlSessionTemplate을 이용해서 실행한다.
+ * </pre>
  */
 @Slf4j
 @Component
 public class BatistyDAO {
+
+    @Value("${batisty.param.currentPage:currentPage}")
+    private String CURRENT_PAGE;
+
+    @Value("${batisty.param.rowCountPerPage:rowCountPerPage}")
+    private String ROW_COUNT_PER_PAGE;
 
     private final Configuration myBatisConfig;
     private final AbstractAutoAudit[] autoAuditExecutors;
@@ -106,12 +126,42 @@ public class BatistyDAO {
      * @param type 대상타입 클래스
      * @param consumer values 구문에 대한 consumer
      * @param <T> 대상타입
-     * @return 저장된 데이터 건수
+     * @return T 저장한 파라미터객체, 저장된 건수가 0인경우 null
      */
-    public <T> int insert(Class<T> type, Consumer<T> consumer) {
+    public <T> T insert(Class<T> type, Consumer<T> consumer) {
         BasicEntityProxy proxy = getBatistyProxy(SqlCommandKind.INSERT, type, consumer);
         String statementId = this.getStatementId(SqlCommandKind.INSERT, proxy, type, null);
-        return sqlSessionTemplate.insert(statementId, proxy.getDataStores().get(0));
+        DataStore ds = proxy.getDataStores().get(0);
+
+        int cnt = sqlSessionTemplate.insert(statementId, ds);
+
+        log.debug("====>"+cnt);
+
+        if(cnt == 0) return null;
+
+        log.debug("ds ==> " + ds);
+
+        for (String key : ds.keySet()) {
+
+            log.debug("=key  ===>"+ key);
+
+            if(ds.getContainer(key) == null) {
+
+                log.debug("not DataContainer!!!!!!!!!!!!!!!!");
+                Field pk = Utils.findField(type, key);
+                pk.setAccessible(true);
+                try {
+
+                    Object value = ds.get(key);
+
+                    log.debug("set value >>  {}, {}", value);
+
+                    pk.set(proxy, value);
+                    break;
+                } catch (IllegalAccessException ignore) {}
+            }
+        }
+        return (T) proxy;
     }
 
     /**
@@ -167,7 +217,7 @@ public class BatistyDAO {
      *    t.setParam1(12);
      *    t.setParam2("tttt");
      *
-     *    String r2 = commonDAO.execute(t);
+     *    String r2 = batistyDAO.execute(t);
      *
      *    System.out.println(r2);
      *    System.out.println(t.getParam2()); //out변수
@@ -185,7 +235,7 @@ public class BatistyDAO {
     /**
      * <pre>
      * ex)
-     *    String r2 = commonDAO.execute(new ExampleProcedure(), t -&gt; {
+     *    String r2 = batistyDAO.execute(new ExampleProcedure(), t -&gt; {
      *        t.setParam1(12);
      *        t.setParam2("tttt");
      *    });
@@ -211,7 +261,7 @@ public class BatistyDAO {
      *    t.setParam1(12);
      *    t.setParam2("tttt");
      *
-     *    String r2 = commonDAO.execute(t);
+     *    String r2 = batistyDAO.execute(t);
      *
      *    System.out.println(r2);
      * </pre>
@@ -229,7 +279,7 @@ public class BatistyDAO {
     /**
      * <pre>
      * ex)
-     *    String r2 = commonDAO.execute(new ExampleFunction(), t -&gt; {
+     *    String r2 = batistyDAO.execute(new ExampleFunction(), t -&gt; {
      *        t.setParam1(12);
      *        t.setParam2("tttt");
      *    });
@@ -245,6 +295,69 @@ public class BatistyDAO {
     public <K extends Function<T>, T> T execute(K function, Consumer<K> consumer) {
         consumer.accept(function);
         return execute(SqlCommandKind.FUNCTION, function);
+    }
+
+
+    /**
+     * <pre>
+     * ex) PagingResult&lt;MenuDto&gt; result = batistyDAO.selectPage(menuDao::selectMenuList, param);
+     * List&lt;MenuDto&gt; data = result.getData();
+     * int totalCount = result.getTotalCount();
+     * int rowOffset = result.getRowOffset();
+     * int lastPageNo = result.getLastPageNo();
+     * </pre>
+     * @param func mybatis mapper dao의 select 쿼리에 해당하는 메소드 람다식
+     * @param param 쿼리에 사용할 파라미터
+     * @return PagingResult
+     * @param <P> 쿼리 parameter type (xml에 지정하는 parameterType과 동일)
+     * @param <T> 쿼리결과를 처리하는 result type (xml에 지정하는 resultType과 동일)
+     */
+    public <T, P> PagingResult<T> selectPage(SerializableFunction<P, List<T>> func, P param) {
+
+        EnhancedRowBounds rowBounds = this.getRowBounds(param);
+
+        try {
+            Method writeReplace = func.getClass().getDeclaredMethod("writeReplace");
+            writeReplace.setAccessible(true);
+            Object form = writeReplace.invoke(func);
+
+            if(form instanceof SerializedLambda) {
+                SerializedLambda lambda = (SerializedLambda) form;
+                String nameSpace = lambda.getImplClass().replace("/", ".");
+                String statementId = nameSpace + "." + lambda.getImplMethodName();
+
+                List<T> list = sqlSessionTemplate.selectList(statementId, param, rowBounds);
+
+                return PagingResult.<T>builder()
+                        .data(list)
+                        .totalCount(rowBounds.getTotalCount())
+                        .rowOffset(rowBounds.getRowOffset())
+                        .lastPageNo(rowBounds.getLastPageNo())
+                        .build();
+            }
+
+            return PagingResult.<T>builder().data(new ArrayList<>()).build();
+
+        }catch (Exception e) {
+            log.debug(e.getMessage());
+            throw new RuntimeException(e);
+        }
+    }
+
+    private EnhancedRowBounds getRowBounds(Object param) {
+
+        int currentPage,rowCountPerPage;
+
+        if(param instanceof Map<?, ?>){
+            Map<?, ?> map = (Map<?, ?>) param;
+            currentPage = map.containsKey(CURRENT_PAGE) ? (int) map.get(CURRENT_PAGE) : 1;
+            rowCountPerPage = map.containsKey(ROW_COUNT_PER_PAGE) ? (int) map.get(ROW_COUNT_PER_PAGE) : 100;
+        }else{
+            currentPage = (int) Utils.readObjectProperty(param, CURRENT_PAGE, 1);
+            rowCountPerPage = (int) Utils.readObjectProperty(param, ROW_COUNT_PER_PAGE, 100);
+        }
+
+        return new EnhancedRowBounds((currentPage - 1) * rowCountPerPage, rowCountPerPage);
     }
 
     @SuppressWarnings("unchecked")
@@ -284,14 +397,60 @@ public class BatistyDAO {
                 sqlCommandType = ((Executable<?>) target).getExecutableResultKind() == ExecutableResultKind.NONE ? SqlCommandType.UPDATE : SqlCommandType.SELECT;
             }
 
-            SqlSource sqlSource = new SqlSourceBuilder(myBatisConfig).parse(sql, parameterType, null);
+            SqlSource sqlSource = new SqlSourceBuilder(myBatisConfig).parse(sql, Map.class, null);
             MappedStatement.Builder statementBuilder = new MappedStatement.Builder(myBatisConfig, statementId, sqlSource, sqlCommandType);
+
+            if(sqlCommandType == SqlCommandType.INSERT) {
+                for (Field field : Utils.getAllFields(parameterType)) {
+                    if(field.isAnnotationPresent(SelectKey.class)) {
+
+                        if (log.isDebugEnabled()) log.debug("Exists SelectKey!!!");
+
+                        SelectKey selectKey = field.getAnnotation(SelectKey.class);
+
+                        String selectKeySql = selectKey.statement();
+                        String selectKeyStatementId = statementId + "!selectKey";
+
+                        if (log.isDebugEnabled()) {
+                            log.debug("selectKeySql : {}", selectKeySql);
+                            log.debug("selectKeyStatementId : {}", selectKeyStatementId);
+                        }
+                        //SqlSource selectKeySqlSource = new RawSqlSource(myBatisConfig, selectKeySql, parameterType);
+                        SqlSource selectKeySqlSource = new SqlSourceBuilder(myBatisConfig).parse(selectKeySql, Map.class, null);
+
+                        MappedStatement.Builder msBuilder = new MappedStatement.Builder(myBatisConfig, selectKeyStatementId, selectKeySqlSource, SqlCommandType.SELECT);
+                        ResultMap.Builder rmBuilder = new ResultMap.Builder(myBatisConfig, selectKeyStatementId, field.getType(), Collections.emptyList());
+                        MappedStatement selectKeyMs = msBuilder
+                                .resultMaps(Collections.singletonList(rmBuilder.build()))
+                                .keyProperty(field.getName())
+                                .build();
+
+                        myBatisConfig.addMappedStatement(selectKeyMs);
+
+                        // selectKeyStatementId 등록 확인
+                        if (!myBatisConfig.hasStatement(selectKeyStatementId)) {
+                            log.error("FATAL: Failed to register SelectKey MappedStatement: {}", selectKeyStatementId);
+                        } else {
+                            log.debug("SUCCESS: SelectKey MappedStatement registered: {}", selectKeyStatementId);
+                        }
+
+                        statementBuilder.keyGenerator(new SelectKeyGenerator(selectKeyMs, selectKey.before()));
+                        break;
+                    }
+
+                    if(field.isAnnotationPresent(UseGeneratedKeys.class)) {
+                        statementBuilder.keyGenerator(new Jdbc3KeyGenerator());
+                        statementBuilder.keyProperty(field.getName());
+                        break;
+                    }
+                }
+            }
 
             statementBuilder.statementType(sqlCommandKind.getStatementType());
 
             if (returnType != null && returnType != Void.class) {
                 statementBuilder.resultMaps(Collections.singletonList(
-                        new ResultMap.Builder(myBatisConfig, statementId, returnType, new ArrayList<>()).build()
+                        new ResultMap.Builder(myBatisConfig, statementId, returnType, Collections.emptyList()).build()
                 ));
             }
             myBatisConfig.addMappedStatement(statementBuilder.build());

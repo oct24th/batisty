@@ -1,5 +1,7 @@
 package io.github.oct24th.batisty.sql;
 
+import io.github.oct24th.batisty.enums.SqlCommandKind;
+
 /**
  * SqlCommandType에 따라 SQL을 생성하는 Provider 인터페이스
  */

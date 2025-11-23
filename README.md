@@ -7,8 +7,14 @@ Batisty에의해 생성되는 SQL은 해당 CRUD 코드가 최초 실행될때 M
 
 MappedStatement에 저장된 SQL은 Mybatis의 기본기능인 XML 혹은 method annotaion을 통해 등록된 SQL과 동일하게 Mybatis에 의해 관리, 실행 된다.
 
+ - 단순 CRUD 쿼리 java entity 기반으로 자동 생성 및 마이바티스에 등록
+ - insert 시 키 생성 전략 (SelectKey or UseGeneratedKeys)
+ - DB 단위의 페이징 
+
+========================================================================
+
 ## 제약사항
-Mybatis 3.4.6 이하 버전에서 개발되었으며 3.2이하에서는 프로시저 호출시 오류가 발생할 것으로 예상된다.
+Mybatis 3.4.6 버전에서 개발되었으며 3.2이하에서는 프로시저 호출시 오류가 발생할 것으로 예상된다.
 
 현재 내부에서 sqlSessionTemplate을 DI받아 사용하기 때문에 복수의 DB로 구성된 시스템은 고려하지 않고 구현되었다.
 
@@ -34,12 +40,23 @@ Entity 클래스는 POJO로 구현한다. (Table 어노테이션도 필요에 �
 단, 각 필드는 항상 private으로 선언하고 Getter와 Setter를 구현해야한다. (내부적으로 CGLIB PROXY를 통해 setter를 wrappingg 한다.)
 
 AutoAudit 어노테이션은 필요시 사용하고 복수의 엔티티에서 공통적으로 사용하는 컬럼이 있다면 상속을 이용할 수 있다.
+
+UseGeneratedKeys 혹은 SelectKey 어노테이션을 이용하여 마이바티스의 Key 관련 기능 사용가능 ( 3.0.0 이상 )
+
+(UseGeneratedKeys 와 SelectKey는 둘중 하나만 사용해야하면 둘다 사용할 경우 UseGeneratedKeys는 무시됨 )
+
 ```
 @Getter  //Getter필수
 @Setter  //Setter필수
 @ToString(callSuper = true)
 @Table("public.TB_CATEGORY")  //@Table은 사용하거나 사용하지 않아도 무방, 지정된 이름은 쿼리문장에 그대로 적용된다.
 public class TbCategory extends AuditBase {  //AuditBase 상속은 audit컬럼을 모든 엔티티에 공통 적용하기 위함으로 없어도 무방 
+
+    @UseGeneratedKeys   //MySql, Postgres 등 auto increment 를 지원하는 DB에서 DB가 생성한 키를 돌려받음
+    private Id;
+    
+    @SelectKey(statement="select some_sequence.nexval from dual") //오라클 Sequence 등 insert 문 실행 전 또는 실행 후 특정 sql을 실행하여 생성한 키 혹은 생성된 키를 돌려받음
+    private Id;    
 
     private String categoryCd;
 
@@ -101,17 +118,17 @@ public class DefaultNamingConverter implements BatistyNamingConverter {
 
     @Override
     public <T> String getTableName(Class<T> type) {
-        return camelToSnake(type.getSimpleName(), String::toLowerCase);
+        return Utils.camelToSnake(type.getSimpleName(), String::toLowerCase);
     }
 
     @Override
     public <T> String getExecutableName(Class<T> type) {
-        return camelToSnake(type.getSimpleName(), String::toLowerCase);
+        return Utils.camelToSnake(type.getSimpleName(), String::toLowerCase);
     }
 
     @Override
     public String getColumnName(Field field) {
-        return camelToSnake(field.getName(), String::toLowerCase);
+        return Utils.camelToSnake(field.getName(), String::toLowerCase);
     }
 }
 ```
@@ -157,14 +174,85 @@ public class InsertAudit extends AbstractAutoAudit {
     }
 }
 ```
+### 페이징 설정
+1. Mybatis plugin: PreparedStatementInterceptor
+
+    springboot 자동설정을 사용하지 않고 별도의 설정을 가져가는 경우 mybatis에 를 plugin으로 등록하는 설정이 필요하다
+    
+    (만약 자동설정을 사용할 경우 plugin은 자동으로 등록된다.)
+
+
+2. RowBoundsSqlWrapper 인터페이스
+
+    별도의 구현체가 빈으로 등록되지 않으면 BasicRowBoundsSqlWrapper 가 사용된다.
+
+    표준 페이징 쿼리 : originalSql + " OFFSET "  + offset + " ROWS FETCH NEXT "+ limit +" ROWS ONLY"
+
+    (오라클 12c, SqlServer, H2 DB등에서 BasicRowBoundsSqlWrapper를 그대로 사용가능)
+
+    만약 DB의 종류나 버전이 다를경우 페이징을위해 wrapping 하는 쿼리가 달라지므로 RowBoundsSqlWrapper 인터페이스를 implement하여
+    
+    String getTotalCountSql(String originalSql);
+    
+    String getPagingSql(String originalSql, int offset, int limit)
+    
+    두개의 메소드를 구현하고 @Component @Primary로 bean으로 등록 해주면 BasicRowBoundsSqlWrapper 대신 해당 bean이 사용된다.
+
+
+3. 페이지번호 파라미터명 설정
+
+    페이지번호를 처리하는 파라미터의 이름으로 currentPage, rowCountPerPage 가 사용된다.
+    
+    만약 변경을 원할경우 application.properties 설정파일에 다음과 같이 설정하여 변경 할수 있다. 
+
+    batisty.param.currentPage=pageNo
+
+    batisty.param.rowCountPerPage=pageSize
+
+```
+// plugin설정: xml 방식
+ <plugins>
+    <plugin interceptor="io.github.oct24th.batisty.proxy.PreparedStatementInterceptor"/>
+ </plugins>
+ 
+// plugin설정: @Configuration 방식
+@Configuration
+public class MyBatisConfig {
+    ...
+    @Bean
+    public SqlSessionFactory sqlSessionFactory(DataSource dataSource, PreparedStatementInterceptor plugin) throws Exception {
+            SqlSessionFactoryBean factoryBean = new SqlSessionFactoryBean();
+            ...
+            factoryBean.setPlugins({ plugin });
+            ...
+            return factoryBean.getObject();
+    }
+    ...
+} 
+```
+
 ### BatistyDAO 사용
 Spring의 Service에서 BatistyDAO를 DI받아서 사용한다.
 ```
-//insert
-int z = batistyDAO.insert(TbCategory.class, t -> {
+//데이터 페이징(DB)
+PagingResult<MenuDto> result = batistyDAO.selectPage(menuDao::selectMenuList, param);
+List<MenuDto> data = result.getData();
+int totalCount = result.getTotalCount();
+int rowOffset = result.getRowOffset();
+int lastPageNo = result.getLastPageNo();
+
+//insert 
+TbCategory z = batistyDAO.insert(TbCategory.class, t -> {
     t.setCategoryCd("a");
     t.setCategoryNm("테스트");
 });
+
+if(z != null) {
+   //insert 시에 Id를 설정하지 않았지만 
+   //Entity에 SelectKey 혹은 UseGeneratedKey가 잇으며 저장된후 pk 존재
+   System.out.println(z.getId()); 
+}
+
 
 //delete
 int d = batistyDAO.delete(TbOwnType.class, t -> {

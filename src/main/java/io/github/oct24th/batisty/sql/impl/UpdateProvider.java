@@ -1,15 +1,16 @@
 package io.github.oct24th.batisty.sql.impl;
 
-import io.github.oct24th.batisty.audit.AbstractAutoAudit;
+import io.github.oct24th.batisty.annotation.AutoAudit;
 import io.github.oct24th.batisty.common.DataContainer;
 import io.github.oct24th.batisty.common.DataStore;
+import io.github.oct24th.batisty.enums.AuditTiming;
+import io.github.oct24th.batisty.enums.SqlCommandKind;
 import io.github.oct24th.batisty.proxy.BasicEntityProxy;
+import io.github.oct24th.batisty.sql.AbstractAutoAudit;
 import io.github.oct24th.batisty.sql.BatistyNamingConverter;
-import io.github.oct24th.batisty.annotation.AutoAudit;
-import io.github.oct24th.batisty.audit.AuditTiming;
 import io.github.oct24th.batisty.sql.BatistyNamingConverterFactory;
-import io.github.oct24th.batisty.sql.SqlCommandKind;
 import io.github.oct24th.batisty.sql.SqlProvider;
+import io.github.oct24th.batisty.util.Utils;
 import lombok.RequiredArgsConstructor;
 import org.apache.ibatis.jdbc.SQL;
 import org.springframework.stereotype.Component;
@@ -57,7 +58,7 @@ public class UpdateProvider implements SqlProvider {
                         .filter(autoAudit -> autoAudit.isSupport(SqlCommandKind.UPDATE))
                         .findFirst()
                         .ifPresent(autoAudit ->
-                            autoAudit.getAllField(type).forEach(field -> {
+                            Utils.getAllFields(type).forEach(field -> {
                                 if(excludeAutoAudit.contains(field)) return;
                                 AutoAudit annotation = field.getAnnotation(AutoAudit.class);
                                 if(annotation == null || annotation.value() != AuditTiming.SQL) return;

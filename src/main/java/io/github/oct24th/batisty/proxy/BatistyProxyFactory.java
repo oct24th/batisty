@@ -1,6 +1,6 @@
 package io.github.oct24th.batisty.proxy;
 
-import io.github.oct24th.batisty.sql.SqlCommandKind;
+import io.github.oct24th.batisty.enums.SqlCommandKind;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.springframework.cglib.proxy.Callback;

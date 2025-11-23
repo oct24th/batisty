@@ -1,9 +1,10 @@
-package io.github.oct24th.batisty.sql;
+package io.github.oct24th.batisty.enums;
 
 import lombok.Getter;
 import org.apache.ibatis.mapping.SqlCommandType;
 import org.apache.ibatis.mapping.StatementType;
 
+@Getter
 public enum SqlCommandKind {
     COUNT(SqlCommandType.SELECT, StatementType.PREPARED, 1),
     SELECT(SqlCommandType.SELECT, StatementType.PREPARED, 1),
@@ -13,9 +14,9 @@ public enum SqlCommandKind {
     PROCEDURE(SqlCommandType.UNKNOWN, StatementType.CALLABLE, 0),
     FUNCTION(SqlCommandType.SELECT, StatementType.PREPARED, 0);
 
-    @Getter private final SqlCommandType sqlCommandType;
-    @Getter private final StatementType statementType;
-    @Getter private final int dataStoreCount;
+    private final SqlCommandType sqlCommandType;
+    private final StatementType statementType;
+    private final int dataStoreCount;
 
     SqlCommandKind(SqlCommandType sqlCommandType, StatementType statementType, int dataStoreCount){
         this.sqlCommandType = sqlCommandType;
