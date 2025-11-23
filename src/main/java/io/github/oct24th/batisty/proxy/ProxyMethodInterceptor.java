@@ -65,7 +65,6 @@ public class ProxyMethodInterceptor implements MethodInterceptor {
                     })
                 );
                 CharSequence statementId = sb.append(this.complexHash(hash.toString()));
-                log.debug("===> statementId: {}", statementId);
                 return statementId.toString();
             case "equal":
                 operator = "=";

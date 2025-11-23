@@ -78,6 +78,7 @@ public class BatistyDAO {
     public <T> long count(Class<T> type, Consumer<WhereCauseProxy<T>> consumer) {
         BasicEntityProxy proxy = getBatistyProxy(SqlCommandKind.SELECT, type, (Consumer<T>) consumer);
         String statementId = this.getStatementId(SqlCommandKind.COUNT, proxy, type, Long.class);
+        log.debug("count: {}", statementId);
         return sqlSessionTemplate.selectOne(statementId, proxy.getDataStores().get(0));
     }
 
@@ -95,6 +96,7 @@ public class BatistyDAO {
     public <T> T selectOne(Class<T> type, Consumer<WhereCauseProxy<T>> consumer) {
         BasicEntityProxy proxy = getBatistyProxy(SqlCommandKind.SELECT, type, (Consumer<T>) consumer);
         String statementId = this.getStatementId(SqlCommandKind.SELECT, proxy, type, type);
+        log.debug("selectOne: {}", statementId);
         return sqlSessionTemplate.selectOne(statementId, proxy.getDataStores().get(0));
     }
 
@@ -112,6 +114,7 @@ public class BatistyDAO {
     public <T> List<T> selectList(Class<T> type, Consumer<WhereCauseProxy<T>> consumer) {
         BasicEntityProxy proxy = getBatistyProxy(SqlCommandKind.SELECT, type, (Consumer<T>) consumer);
         String statementId = this.getStatementId(SqlCommandKind.SELECT, proxy, type, type);
+        log.debug("selectList: {}", statementId);
         return sqlSessionTemplate.selectList(statementId, proxy.getDataStores().get(0));
     }
 
@@ -131,32 +134,17 @@ public class BatistyDAO {
     public <T> T insert(Class<T> type, Consumer<T> consumer) {
         BasicEntityProxy proxy = getBatistyProxy(SqlCommandKind.INSERT, type, consumer);
         String statementId = this.getStatementId(SqlCommandKind.INSERT, proxy, type, null);
+        log.debug("insert: {}", statementId);
         DataStore ds = proxy.getDataStores().get(0);
 
-        int cnt = sqlSessionTemplate.insert(statementId, ds);
-
-        log.debug("====>"+cnt);
-
-        if(cnt == 0) return null;
-
-        log.debug("ds ==> " + ds);
+        if(sqlSessionTemplate.insert(statementId, ds) == 0) return null;
 
         for (String key : ds.keySet()) {
-
-            log.debug("=key  ===>"+ key);
-
             if(ds.getContainer(key) == null) {
-
-                log.debug("not DataContainer!!!!!!!!!!!!!!!!");
                 Field pk = Utils.findField(type, key);
                 pk.setAccessible(true);
                 try {
-
-                    Object value = ds.get(key);
-
-                    log.debug("set value >>  {}, {}", value);
-
-                    pk.set(proxy, value);
+                    pk.set(proxy, ds.get(key));
                     break;
                 } catch (IllegalAccessException ignore) {}
             }
@@ -181,6 +169,7 @@ public class BatistyDAO {
     public <T> int delete(Class<T> type, Consumer<WhereCauseProxy<T>> consumer) {
         BasicEntityProxy proxy = getBatistyProxy(SqlCommandKind.DELETE, type, (Consumer<T>) consumer);
         String statementId = this.getStatementId(SqlCommandKind.DELETE, proxy, type, null);
+        log.debug("delete: {}", statementId);
         return sqlSessionTemplate.delete(statementId, proxy.getDataStores().get(0));
     }
 
@@ -205,6 +194,7 @@ public class BatistyDAO {
     public <T> int update(Class<T> type, Consumer<UpdateEntityProxy<T>> consumer) {
         BasicEntityProxy proxy = this.getBatistyProxy(SqlCommandKind.UPDATE, type, (Consumer<T>) consumer);
         String statementId = this.getStatementId(SqlCommandKind.UPDATE, proxy, type, null);
+        log.debug("update: {}", statementId);
         Map<String, Object> param = proxy.getDataStores().get(0);
         param.putAll(proxy.getDataStores().get(1));
         return sqlSessionTemplate.update(statementId, param);
@@ -364,6 +354,8 @@ public class BatistyDAO {
     private <K extends Executable<T>, T> T execute(SqlCommandKind sqlCommandKind, K executable) {
         String statementId = this.getStatementId(sqlCommandKind, executable, executable.getClass(), executable.getReturnType());
 
+        log.debug("execute: {}", statementId);
+
         switch (executable.getExecutableResultKind()) {
             case ONE: return sqlSessionTemplate.selectOne(statementId, executable);
             case LIST: return (T)sqlSessionTemplate.selectList(statementId, executable);
@@ -390,7 +382,7 @@ public class BatistyDAO {
 
         if (!myBatisConfig.hasStatement(statementId)) {
             String sql = providerStore.get(sqlCommandKind).build(target);
-            if (log.isDebugEnabled()) log.debug("Registration new MappedStatement({}) : {}", statementId, sql);
+            if (log.isDebugEnabled()) log.debug("Registration new MappedStatement({}) : \\n {}", statementId, sql);
 
             SqlCommandType sqlCommandType = sqlCommandKind.getSqlCommandType();
             if (sqlCommandType == SqlCommandType.UNKNOWN) {
