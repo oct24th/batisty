@@ -43,7 +43,7 @@ AutoAudit 어노테이션은 필요시 사용하고 복수의 엔티티에서 �
 
 UseGeneratedKeys 혹은 SelectKey 어노테이션을 이용하여 마이바티스의 Key 관련 기능 사용가능 ( 3.0.0 이상 )
 
-(UseGeneratedKeys 와 SelectKey는 둘중 하나만 사용해야하면 둘다 사용할 경우 UseGeneratedKeys는 무시됨 )
+(UseGeneratedKeys 와 SelectKey는 둘중 하나만 사용해야하며 둘다 사용할 경우 UseGeneratedKeys는 무시됨 )
 
 ```
 @Getter  //Getter필수
@@ -111,7 +111,7 @@ Java Class에서 DB 테이블에 사용할 테이블, 컬럼 이름을 생성하
 
 등록된 Bean이 없을 경우 DefaultNamingConverter가 적용.
 
-DefaultNamingConverter는 클래스이름, 필드이름을 UPPER CASE SNAKE CASE로 변환.
+DefaultNamingConverter는 클래스이름, 필드이름을 LOWER CASE SNAKE CASE로 변환.
 ```
 @Component
 public class DefaultNamingConverter implements BatistyNamingConverter {
@@ -188,9 +188,9 @@ public class InsertAudit extends AbstractAutoAudit {
 
     표준 페이징 쿼리 : originalSql + " OFFSET "  + offset + " ROWS FETCH NEXT "+ limit +" ROWS ONLY"
 
-    (오라클 12c, SqlServer, H2 DB등에서 BasicRowBoundsSqlWrapper를 그대로 사용가능)
+    (오라클 12c 이상, SqlServer, H2 DB등에서 BasicRowBoundsSqlWrapper를 그대로 사용가능)
 
-    만약 DB의 종류나 버전이 다를경우 페이징을위해 wrapping 하는 쿼리가 달라지므로 RowBoundsSqlWrapper 인터페이스를 implement하여
+    만약 DB의 종류나 버전에 따라 페이징을위해 wrapping 하는 쿼리가 달라지는경우 RowBoundsSqlWrapper 인터페이스의
     
     String getTotalCountSql(String originalSql);
     
@@ -249,7 +249,7 @@ TbCategory z = batistyDAO.insert(TbCategory.class, t -> {
 
 if(z != null) {
    //insert 시에 Id를 설정하지 않았지만 
-   //Entity에 SelectKey 혹은 UseGeneratedKey가 잇으며 저장된후 pk 존재
+   //Entity에 SelectKey 혹은 UseGeneratedKey가 있으면 저장된후 pk 존재
    System.out.println(z.getId()); 
 }
 
@@ -257,7 +257,8 @@ if(z != null) {
 //delete
 int d = batistyDAO.delete(TbOwnType.class, t -> {
     t.equal().setOwnTypeCd("a");
-    t.like().setOwnTypeCd("b%"); //like 조건 + 동일컬럼에 복수의 조건
+    t.like().setOwnTypeCd("b%"); //like 조건 
+    t.notLike().setOwnTypeCd("%c"); //like 조건 + 동일컬럼에 복수의 조건 
 });
 
 //update
