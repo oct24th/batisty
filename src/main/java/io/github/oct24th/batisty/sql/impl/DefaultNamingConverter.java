@@ -2,6 +2,7 @@ package io.github.oct24th.batisty.sql.impl;
 
 import io.github.oct24th.batisty.sql.BatistyNamingConverter;
 import io.github.oct24th.batisty.util.Utils;
+import org.springframework.jdbc.support.JdbcUtils;
 
 import java.lang.reflect.Field;
 
@@ -12,16 +13,16 @@ public class DefaultNamingConverter implements BatistyNamingConverter {
 
     @Override
     public <T> String getTableName(Class<T> type) {
-        return Utils.camelToSnake(type.getSimpleName(), String::toLowerCase);
+        return JdbcUtils.convertPropertyNameToUnderscoreName(type.getSimpleName());
     }
 
     @Override
     public <T> String getExecutableName(Class<T> type) {
-        return Utils.camelToSnake(type.getSimpleName(), String::toLowerCase);
+        return JdbcUtils.convertPropertyNameToUnderscoreName(type.getSimpleName());
     }
 
     @Override
     public String getColumnName(Field field) {
-        return Utils.camelToSnake(field.getName(), String::toLowerCase);
+        return JdbcUtils.convertPropertyNameToUnderscoreName(field.getName());
     }
 }

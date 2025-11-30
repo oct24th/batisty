@@ -6,10 +6,10 @@ plugins {
 }
 
 group = "io.github.oct24th"
-version = "3.0.1"
+version = "4.0.0"
 
 java {
-	sourceCompatibility = JavaVersion.VERSION_11
+	sourceCompatibility = JavaVersion.VERSION_17
 //	withJavadocJar()
 	withSourcesJar()
 }
@@ -26,8 +26,9 @@ repositories {
 
 dependencies {
 	compileOnly("org.mybatis:mybatis:3.4.6")
-	compileOnly("org.springframework:spring-web:5.3.27")
-	compileOnly("org.springframework:spring-webmvc:5.3.27")
+	compileOnly("org.springframework:spring-web:6.2.3")
+	compileOnly("org.springframework:spring-webmvc:6.2.3")
+	compileOnly("org.springframework:spring-jdbc:6.2.3")
 	compileOnly("org.slf4j:slf4j-api:1.7.36")
 	compileOnly("org.mybatis:mybatis-spring:2.1.2")
 
@@ -53,7 +54,7 @@ mavenPublishing {
 	coordinates( // Coordinate(GAV)
 		groupId = "io.github.oct24th",
 		artifactId = "batisty",
-		version = "3.0.1"
+		version = "4.0.0"
 	)
 
 	pom {
