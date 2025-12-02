@@ -74,7 +74,7 @@ public class DemoApplication {
 2. [io.github.oct24th.batisty.sql.AbstractAutoAudit](src/main/java/io/github/oct24th/batisty/sql/AbstractAutoAudit.java)
 
    구현체를 Bean으로 등록하면 Batisty를 이용한 Insert, Update시 Audit 컬럼이 SQL에 자동 포함.
-   Entity클래스에 AutoAudit 어노테이션으로 Audit 컬럼(데이터 생성 유저아이디, 아이피, 시간, 최종수정 유저 아이디, 아이피, 시간 등) 명시
+   Entity클래스에 AutoAudit 어노테이션으로(데이터 생성 유저아이디, 아이피, 시간, 최종수정 유저 아이디, 아이피, 시간 등) 명시
    
    ```
    @Component
@@ -127,6 +127,7 @@ public class DemoApplication {
    resultType="map"으로 지정되면 value의 javaType이 특정되지 않아 BaseTypeHandler가 동작하지 않는다.
 
    이경우 MapValueTypeHandler를 등록하여 결과 타입을 변환 할 수있다.
+
    예) [ClobToStringMapValueTypeHandler.java](src/main/java/io/github/oct24th/batisty/result/impl/ClobToStringMapValueTypeHandler.java)
 
 ### Entity 클래스 작성 방법
