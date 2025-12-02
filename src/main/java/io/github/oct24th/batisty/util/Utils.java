@@ -5,12 +5,14 @@ import lombok.extern.slf4j.Slf4j;
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.Supplier;
 
 @Slf4j
 public class Utils {
@@ -79,5 +81,25 @@ public class Utils {
         } catch (Exception e) {
             throw new RuntimeException("SHA-256 error", e);
         }
+    }
+
+    public static Class<?> getGenericType(Field field, Supplier<Class<?>> rawTypeSupplier) {
+        if (field.getGenericType() instanceof ParameterizedType pt) {
+            Type[] actualTypeArguments = pt.getActualTypeArguments();
+
+            if (actualTypeArguments.length > 0) {
+                Type typeArg = actualTypeArguments[0];
+                if (typeArg instanceof Class) {
+                    return (Class<?>) typeArg;
+                }
+            }
+            return null;
+        }else{
+            return rawTypeSupplier.get();
+        }
+    }
+
+    public static String resultMapId(Class<?> type) {
+        return "BATISTY_R_MAP_" + type.getName();
     }
 }

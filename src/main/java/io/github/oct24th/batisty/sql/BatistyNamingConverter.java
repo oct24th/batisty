@@ -1,9 +1,9 @@
 package io.github.oct24th.batisty.sql;
 
 import io.github.oct24th.batisty.common.Parameter;
+import io.github.oct24th.batisty.util.Utils;
 
 import java.lang.reflect.Field;
-import java.util.function.Function;
 
 public interface BatistyNamingConverter {
 
@@ -28,6 +28,7 @@ public interface BatistyNamingConverter {
         sb.append(parameter.getName());
         if(parameter.getMode() != null) sb.append(", mode=").append(parameter.getMode());
         if(parameter.getJdbcType() != null) sb.append(", jdbcType=").append(parameter.getJdbcType());
+        if(parameter.getJavaType() != null) sb.append(", resultMap=").append(Utils.resultMapId(parameter.getJavaType()));
         sb.append("}");
         return sb.toString();
     }

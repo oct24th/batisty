@@ -1,33 +1,33 @@
 package io.github.oct24th.batisty;
 
+import io.github.oct24th.batisty.annotation.Param;
 import io.github.oct24th.batisty.annotation.SelectKey;
 import io.github.oct24th.batisty.annotation.UseGeneratedKeys;
-import io.github.oct24th.batisty.sql.AbstractAutoAudit;
-import io.github.oct24th.batisty.common.*;
+import io.github.oct24th.batisty.common.DataStore;
+import io.github.oct24th.batisty.common.Executable;
+import io.github.oct24th.batisty.common.Function;
+import io.github.oct24th.batisty.common.Procedure;
 import io.github.oct24th.batisty.enums.ExecutableResultKind;
+import io.github.oct24th.batisty.enums.SqlCommandKind;
 import io.github.oct24th.batisty.paging.EnhancedRowBounds;
 import io.github.oct24th.batisty.paging.PagingResult;
 import io.github.oct24th.batisty.paging.SerializableFunction;
 import io.github.oct24th.batisty.proxy.*;
-import io.github.oct24th.batisty.enums.SqlCommandKind;
+import io.github.oct24th.batisty.sql.AbstractAutoAudit;
 import io.github.oct24th.batisty.sql.SqlProvider;
 import io.github.oct24th.batisty.util.Utils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.builder.SqlSourceBuilder;
 import org.apache.ibatis.executor.keygen.Jdbc3KeyGenerator;
 import org.apache.ibatis.executor.keygen.SelectKeyGenerator;
-import org.apache.ibatis.mapping.MappedStatement;
-import org.apache.ibatis.mapping.ResultMap;
-import org.apache.ibatis.mapping.SqlCommandType;
-import org.apache.ibatis.mapping.SqlSource;
-import org.apache.ibatis.scripting.defaults.RawSqlSource;
+import org.apache.ibatis.mapping.*;
 import org.apache.ibatis.session.Configuration;
+import org.apache.ibatis.type.JdbcType;
 import org.mybatis.spring.SqlSessionTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.beans.PropertyDescriptor;
 import java.lang.invoke.SerializedLambda;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -376,11 +376,53 @@ public class BatistyDAO {
         return (BasicEntityProxy) proxy;
     }
 
+    private void resultMapProcessing(Class<?> parameterType){
+
+        List<Field> fields = Utils.getAllFields(parameterType);
+
+        fields.forEach(field -> {
+            if(field.isAnnotationPresent(Param.class)){
+                Param param = field.getAnnotation(Param.class);
+                if(param.mode() == ParameterMode.OUT && param.jdbcType() == JdbcType.CURSOR) {
+                    Class<?> list = field.getType();
+                    if(!List.class.isAssignableFrom(list)) {
+                        throw new RuntimeException("Invalid Out Variable Type. Field '" + field.getName() +
+                                "' in class '" + parameterType.getName() +
+                                "' is annotated as CURSOR, but its type is not List.");
+                    }else{
+                        Class<?> type = Utils.getGenericType(field, () -> Map.class);
+
+                        if(type != null) {
+                            String id = Utils.resultMapId(type);
+                            if(!myBatisConfig.hasResultMap(id)) {
+                                log.debug("Add New ResultMap {}, ", id);
+                                myBatisConfig.addResultMap(
+                                        new ResultMap.Builder(
+                                                myBatisConfig,
+                                                id,
+                                                type,
+                                                new ArrayList<>(),
+                                                true
+                                        ).build()
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     private String getStatementId(SqlCommandKind sqlCommandKind, StatementIdSupplier target, Class<?> parameterType, Class<?> returnType) {
 
         String statementId = target.createStatementId(sqlCommandKind);
 
         if (!myBatisConfig.hasStatement(statementId)) {
+
+            if(sqlCommandKind == SqlCommandKind.PROCEDURE) {
+                resultMapProcessing(parameterType);
+            }
+
             String sql = providerStore.get(sqlCommandKind).build(target);
             if (log.isDebugEnabled()) log.debug("Registration new MappedStatement({}) : \\n {}", statementId, sql);
 

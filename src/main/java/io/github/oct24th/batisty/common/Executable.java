@@ -5,6 +5,7 @@ import io.github.oct24th.batisty.annotation.Param;
 import io.github.oct24th.batisty.enums.ExecutableResultKind;
 import io.github.oct24th.batisty.proxy.StatementIdSupplier;
 import io.github.oct24th.batisty.enums.SqlCommandKind;
+import io.github.oct24th.batisty.util.Utils;
 import lombok.Getter;
 import org.apache.ibatis.javassist.ClassPool;
 import org.apache.ibatis.javassist.CtClass;
@@ -65,22 +66,41 @@ public abstract class Executable<T> implements StatementIdSupplier {
         try {
             ClassPool classPool = ClassPool.getDefault();
             CtClass clazz = classPool.get(className);
+
             executableMetaData.put(className, Arrays.stream(clazz.getDeclaredFields()).map(field -> {
                 Param paramMetaInfo = null;
+                ParameterMode mode = null;
+                JdbcType jdbcType = null;
+                Class<?> javaType = null;
+
                 try {
                     paramMetaInfo = (Param) field.getAnnotation(Param.class);
                 } catch (ClassNotFoundException e) {
                     e.printStackTrace();
                 }
-                ParameterMode mode = null;
-                JdbcType jdbcType = null;
+
                 if(paramMetaInfo != null) {
                     mode = paramMetaInfo.mode();
                     jdbcType = paramMetaInfo.jdbcType();
                     if(mode == ParameterMode.IN) mode = null;
                     if(jdbcType == JdbcType.NULL) jdbcType = null;
                 }
-                return new Parameter(field.getName(), mode, jdbcType);
+
+                if(mode == ParameterMode.OUT && jdbcType == JdbcType.CURSOR) {
+                    try {
+                        Class<?> orgClazz = Class.forName(className);
+                        javaType = Utils.getGenericType(orgClazz.getDeclaredField(field.getName()), () -> Map.class);
+                    } catch (NoSuchFieldException | ClassNotFoundException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                return Parameter.builder()
+                        .name(field.getName())
+                        .mode(mode)
+                        .jdbcType(jdbcType)
+                        .javaType(javaType)
+                        .build();
             }).collect(Collectors.toList()));
         } catch (NotFoundException e) {
             e.printStackTrace();
