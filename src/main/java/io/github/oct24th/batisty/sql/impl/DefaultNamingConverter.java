@@ -1,7 +1,6 @@
 package io.github.oct24th.batisty.sql.impl;
 
 import io.github.oct24th.batisty.sql.BatistyNamingConverter;
-import io.github.oct24th.batisty.util.Utils;
 import org.springframework.jdbc.support.JdbcUtils;
 
 import java.lang.reflect.Field;

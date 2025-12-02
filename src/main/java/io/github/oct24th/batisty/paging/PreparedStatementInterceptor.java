@@ -1,5 +1,6 @@
 package io.github.oct24th.batisty.paging;
 
+import io.github.oct24th.batisty.paging.impl.BasicRowBoundsSqlWrapper;
 import org.apache.ibatis.executor.parameter.ParameterHandler;
 import org.apache.ibatis.executor.statement.StatementHandler;
 import org.apache.ibatis.plugin.*;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Component;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.Optional;
 import java.util.Properties;
 
 @Component
@@ -23,9 +25,9 @@ public class PreparedStatementInterceptor implements Interceptor {
 
     private final RowBoundsSqlWrapper rowBoundsSqlWrapper;
 
-    public PreparedStatementInterceptor(RowBoundsSqlWrapper rowBoundsSqlWrapper) {
+    public PreparedStatementInterceptor(Optional<RowBoundsSqlWrapper> rowBoundsSqlWrapper) {
         logger.debug("Bind rowBoundsSqlWrapper : {}", rowBoundsSqlWrapper);
-        this.rowBoundsSqlWrapper = rowBoundsSqlWrapper;
+        this.rowBoundsSqlWrapper = rowBoundsSqlWrapper.orElseGet(BasicRowBoundsSqlWrapper::new);
     }
 
     @Override
