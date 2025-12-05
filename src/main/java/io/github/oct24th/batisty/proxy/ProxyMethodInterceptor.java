@@ -95,7 +95,8 @@ public class ProxyMethodInterceptor implements MethodInterceptor {
                     if(!field.isAnnotationPresent(Ignore.class)){
                         DataContainer dc = new DataContainer(field, operator, objects[0]);
                         DataStore ds = dataStores.get(storeIdx);
-                        ds.put(storeIdx + propertyName, dc);
+                        if(storeIdx == 0) ds.put(propertyName, dc);
+                        else ds.put(storeIdx + propertyName, dc);
                         operator = "";
                     }
                 }

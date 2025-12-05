@@ -22,7 +22,9 @@ public class DataStore extends LinkedHashMap<String, Object> {
 
         int cnt = counter.getOrDefault(key, -1) + 1;
         counter.put(key, cnt);
-        return super.put(key+cnt, value);
+
+        if(cnt == 0) return super.put(key, value);
+        else return super.put(key+cnt, value);
     }
 
     public DataContainer getContainer(String key){

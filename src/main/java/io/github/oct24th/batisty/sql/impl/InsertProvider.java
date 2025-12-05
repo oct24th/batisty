@@ -67,7 +67,7 @@ public class InsertProvider implements SqlProvider {
                     SelectKey annotation = field.getAnnotation(SelectKey.class);
                     if(annotation == null || !annotation.before()) return;
                     String columnName = converter.getColumnName(field);
-                    VALUES(columnName, converter.getBindingMarkup(columnName));
+                    VALUES(columnName, converter.getBindingMarkup(field.getName()));
                 });
 
                 //auto audit
