@@ -22,9 +22,8 @@ public class ClobToStringMapValueTypeHandler implements MapValueTypeHandler {
         if (clob == null) return null;
 
         try {
-            int bufferSize = 4096 * 8; // 32KB
+            int bufferSize = 1024 * 32; // 32KB
             long len = clob.length();
-
             // 버퍼크기 이하라면 substring이 더 빠르고 안전
             if (len <= bufferSize) return clob.getSubString(1, (int) len);
 

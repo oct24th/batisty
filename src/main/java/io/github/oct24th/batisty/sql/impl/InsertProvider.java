@@ -58,7 +58,7 @@ public class InsertProvider implements SqlProvider {
                     Field field = dc.getField();
                     if(field.isAnnotationPresent(AutoAudit.class)) excludeAutoAudit.add(field);
                     if(field.isAnnotationPresent(SelectKey.class)) excludeKeyField.add(field);
-                    VALUES(converter.getColumnName(field), converter.getBindingMarkup(key));
+                    VALUES(converter.getColumnName(field), converter.getBindingMarkup(key, field));
                 });
 
                 //키필드 포함시키기

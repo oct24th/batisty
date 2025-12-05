@@ -1,5 +1,6 @@
 package io.github.oct24th.batisty.sql;
 
+import io.github.oct24th.batisty.annotation.Param;
 import io.github.oct24th.batisty.common.Parameter;
 import io.github.oct24th.batisty.util.Utils;
 
@@ -15,6 +16,26 @@ public interface BatistyNamingConverter {
      */
     default String getBindingMarkup(String bindName) {
         return "#{"+bindName+"}";
+    }
+
+    /**
+     * 바인딩 표현식 ( #{..., jdbcType=...} )<br>
+     * insert, update시 오라클의 clob, mysql의 LONGTEXT 등 특수한 경우는 jdbctype을 명시해줘야한다.
+     * Mybatis의 설정을 통해 표현식을 변경한 경우 override 해야한다.
+     * @param bindName 바인딩 변수명
+     * @param field 바인딩 필드
+     * @return 바인딩 표현식
+     */
+    default String getBindingMarkup(String bindName, Field field) {
+        StringBuilder sb = new StringBuilder("#{");
+        sb.append(bindName);
+
+        if(field.isAnnotationPresent(Param.class)) {
+            Param param = field.getAnnotation(Param.class);
+            if(param.jdbcType() != null) sb.append(", jdbcType=").append(param.jdbcType());
+        }
+        sb.append("}");
+        return sb.toString();
     }
 
     /**

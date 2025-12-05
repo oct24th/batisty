@@ -51,7 +51,7 @@ public class UpdateProvider implements SqlProvider {
                     DataContainer dc = ds0.getContainer(key);
                     Field field = dc.getField();
                     if(field.isAnnotationPresent(AutoAudit.class)) excludeAutoAudit.add(field);
-                    SET(converter.getColumnName(field) + " = " + converter.getBindingMarkup(key));
+                    SET(converter.getColumnName(field) + " = " + converter.getBindingMarkup(key, field));
                 });
 
                 Arrays.stream(autoAudits)
