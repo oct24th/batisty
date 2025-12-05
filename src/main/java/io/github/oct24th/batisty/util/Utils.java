@@ -3,10 +3,7 @@ package io.github.oct24th.batisty.util;
 import lombok.extern.slf4j.Slf4j;
 
 import java.beans.PropertyDescriptor;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
+import java.lang.reflect.*;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
@@ -84,19 +81,33 @@ public class Utils {
     }
 
     public static Class<?> getGenericType(Field field, Supplier<Class<?>> rawTypeSupplier) {
+
+        System.out.println("field  " + field);
+        Class<?> clazz = null;
         if (field.getGenericType() instanceof ParameterizedType pt) {
             Type[] actualTypeArguments = pt.getActualTypeArguments();
 
             if (actualTypeArguments.length > 0) {
-                Type typeArg = actualTypeArguments[0];
-                if (typeArg instanceof Class) {
-                    return (Class<?>) typeArg;
-                }
+                clazz = extractClassFromType(actualTypeArguments[0]);
             }
-            return null;
-        }else{
-            return rawTypeSupplier.get();
         }
+        return clazz != null ? clazz : rawTypeSupplier.get();
+    }
+
+    /**
+     * Type 객체로부터 실제 Class 객체 (Raw Type)를 추출합니다.
+     * @param type 추출할 Type 객체
+     * @return 추출된 Class 객체 또는 null
+     */
+    public static Class<?> extractClassFromType(Type type) {
+        if (type == null) return null;
+        if (type instanceof Class<?> clazz) return clazz;
+        if (type instanceof ParameterizedType pt) return extractClassFromType(pt.getRawType());
+        if (type instanceof TypeVariable<?> tv) {
+            Type[] bounds = tv.getBounds();
+            if (bounds.length > 0) return extractClassFromType(bounds[0]);
+        }
+        return null;
     }
 
     public static String resultMapId(Class<?> type) {

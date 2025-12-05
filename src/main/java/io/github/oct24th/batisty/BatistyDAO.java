@@ -381,34 +381,34 @@ public class BatistyDAO {
         List<Field> fields = Utils.getAllFields(parameterType);
 
         fields.forEach(field -> {
-            if(field.isAnnotationPresent(Param.class)){
-                Param param = field.getAnnotation(Param.class);
-                if(param.mode() == ParameterMode.OUT && param.jdbcType() == JdbcType.CURSOR) {
-                    Class<?> list = field.getType();
-                    if(!List.class.isAssignableFrom(list)) {
-                        throw new RuntimeException("Invalid Out Variable Type. Field '" + field.getName() +
-                                "' in class '" + parameterType.getName() +
-                                "' is annotated as CURSOR, but its type is not List.");
-                    }else{
-                        Class<?> type = Utils.getGenericType(field, () -> Map.class);
+            if(!field.isAnnotationPresent(Param.class)) return;
 
-                        if(type != null) {
-                            String id = Utils.resultMapId(type);
-                            if(!myBatisConfig.hasResultMap(id)) {
-                                log.debug("Add New ResultMap {}, ", id);
-                                myBatisConfig.addResultMap(
-                                        new ResultMap.Builder(
-                                                myBatisConfig,
-                                                id,
-                                                type,
-                                                new ArrayList<>(),
-                                                true
-                                        ).build()
-                                );
-                            }
-                        }
-                    }
-                }
+            Param param = field.getAnnotation(Param.class);
+            if(param.mode() != ParameterMode.OUT || param.jdbcType() != JdbcType.CURSOR) return;
+
+            Class<?> list = field.getType();
+
+            if(!List.class.isAssignableFrom(list)) {
+                throw new RuntimeException("Invalid Out Variable Type. Field '" + field.getName() +
+                        "' in class '" + parameterType.getName() +
+                        "' is annotated as CURSOR, but its type is not List.");
+            }else{
+                Class<?> type = Utils.getGenericType(field, () -> Map.class);
+                if(type == null) return;
+
+                String id = Utils.resultMapId(type);
+                if(myBatisConfig.hasResultMap(id)) return;
+
+                log.debug("Add New ResultMap {}, ", id);
+                myBatisConfig.addResultMap(
+                        new ResultMap.Builder(
+                                myBatisConfig,
+                                id,
+                                type,
+                                new ArrayList<>(),
+                                true
+                        ).build()
+                );
             }
         });
     }
