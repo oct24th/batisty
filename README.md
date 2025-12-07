@@ -21,18 +21,37 @@ MappedStatement에 저장된 SQL은 Mybatis의 기본기능인 XML 혹은 method
    batisty.param.currentPage=pageNo
 
    batisty.param.rowCountPerPage=pageSize
-6. returnType="map"인 경우 에도 mapUnderscoreToCamelCase 설정 적용
-7. returnType="map"인 경우 resultType 처리에대한 확장 포인트 제공
+6. Oracle DB의 Stored Procedure에서 out 변수로 sys_refcursor를 List 타입으로 받을 수있도록 resultMap생성 자동 생성
+7. returnType="map"인 경우 에도 mapUnderscoreToCamelCase 설정 적용
+8. returnType="map"인 경우 resultType 처리에대한 확장 포인트 제공
 
+   ※ returnType="map"애 대한 처리는 CustomMapWrapperFactory를 mybatis의 ObjectWrapperFactory로 등록해주어야한다
+   ```
+   //springboot 사용시
+   @Configuration
+   public class MybatisConfig {
+       @Bean
+       public ConfigurationCustomizer mybatisConfigurationCustomizer(CustomMapWrapperFactory customMapWrapperFactory) {
+           return configuration -> configuration.setObjectWrapperFactory(customMapWrapperFactory);
+       }
+   }
+   //springboot 미사용시 mybatis-config.xml 파일을 이용해서 설정
+   <configuration>
+       ...
+       <objectWrapperFactory type="com.yourpackage.CustomMapWrapperFactory"/>
+       ...
+   </configuration>
+   ```
 ### 제약사항
 1. Springframework 6.0이상, JDK17이상
 2. Mybatis 3.4.6 이상
 3. sqlSessionTemplate이 복수인경우(복수의 DB를 사용하는경우) 고려되지 않음
 
 ### 변경이력
-#### v4.0.0 
-1. returnType="map"일때 key에 대한 mapUnderscoreToCamelCase 설정 적용
-2. returnType="map"인 경우 resultType 처리에대한 확장 포인트 추가
+#### v4.1.1 
+1. Oracle DB의 Stored Procedure에서 out 변수 처리를 위한 resultMap자동 생성 기능 추가
+2. returnType="map"일때 key에 대한 mapUnderscoreToCamelCase 설정 적용
+3. returnType="map"인 경우 resultType 처리에대한 확장 포인트 추가
 
 - snake_case ↔ camelCase 변환의 일관성 유지를 위해 org.springframework:spring-jdbc에 포함된 JdbcUtils를 사용하면서
 springframework 및 jdk 버전이 springframework 6.0이상 jdk이상으로 변경됨
