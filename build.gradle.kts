@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "io.github.oct24th"
-version = "4.1.2"
+version = "4.1.3"
 
 java {
 	sourceCompatibility = JavaVersion.VERSION_17
@@ -55,7 +55,7 @@ mavenPublishing {
 	coordinates( // Coordinate(GAV)
 		groupId = "io.github.oct24th",
 		artifactId = "batisty",
-		version = "4.1.1"
+		version = "4.1.3"
 	)
 
 	pom {

@@ -24,24 +24,6 @@ MappedStatement에 저장된 SQL은 Mybatis의 기본기능인 XML 혹은 method
 6. Oracle DB의 Stored Procedure에서 out 변수로 sys_refcursor를 List 타입으로 받을 수있도록 resultMap생성 자동 생성
 7. returnType="map"인 경우 에도 mapUnderscoreToCamelCase 설정 적용
 8. returnType="map"인 경우 resultType 처리에대한 확장 포인트 제공
-
-   ※ returnType="map"애 대한 처리는 CustomMapWrapperFactory를 mybatis의 ObjectWrapperFactory로 등록해주어야한다
-   ```
-   //springboot 사용시
-   @Configuration
-   public class MybatisConfig {
-       @Bean
-       public ConfigurationCustomizer mybatisConfigurationCustomizer(CustomMapWrapperFactory customMapWrapperFactory) {
-           return configuration -> configuration.setObjectWrapperFactory(customMapWrapperFactory);
-       }
-   }
-   //springboot 미사용시 mybatis-config.xml 파일을 이용해서 설정
-   <configuration>
-       ...
-       <objectWrapperFactory type="com.yourpackage.CustomMapWrapperFactory"/>
-       ...
-   </configuration>
-   ```
 ### 제약사항
 1. Springframework 6.0이상, JDK17이상
 2. Mybatis 3.4.6 이상
