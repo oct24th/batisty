@@ -1,6 +1,7 @@
 package io.github.oct24th.batisty.sql.impl;
 
 import io.github.oct24th.batisty.annotation.AutoAudit;
+import io.github.oct24th.batisty.annotation.Ignore;
 import io.github.oct24th.batisty.annotation.SelectKey;
 import io.github.oct24th.batisty.common.DataContainer;
 import io.github.oct24th.batisty.common.DataStore;
@@ -58,7 +59,9 @@ public class InsertProvider implements SqlProvider {
                     Field field = dc.getField();
                     if(field.isAnnotationPresent(AutoAudit.class)) excludeAutoAudit.add(field);
                     if(field.isAnnotationPresent(SelectKey.class)) excludeKeyField.add(field);
-                    VALUES(converter.getColumnName(field), converter.getBindingMarkup(key, field));
+                    if(!field.isAnnotationPresent(Ignore.class)) {
+                        VALUES(converter.getColumnName(field), converter.getBindingMarkup(key, field));
+                    }
                 });
 
                 //키필드 포함시키기

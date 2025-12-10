@@ -92,13 +92,12 @@ public class ProxyMethodInterceptor implements MethodInterceptor {
                 if(methodName.startsWith("set")) {
                     String propertyName = StringUtils.uncapitalize(methodName.replaceFirst("set", ""));
                     Field field = Utils.findField(obj.getClass(), propertyName);
-                    if(!field.isAnnotationPresent(Ignore.class)){
-                        DataContainer dc = new DataContainer(field, operator, objects[0]);
-                        DataStore ds = dataStores.get(storeIdx);
-                        if(storeIdx == 0) ds.put(propertyName, dc);
-                        else ds.put(storeIdx + propertyName, dc);
-                        operator = "";
-                    }
+
+                    DataContainer dc = new DataContainer(field, operator, objects[0]);
+                    DataStore ds = dataStores.get(storeIdx);
+                    if(storeIdx == 0) ds.put(propertyName, dc);
+                    else ds.put(storeIdx + propertyName, dc);
+                    operator = "";
                 }
 
                 return methodProxy.invokeSuper(obj, objects);

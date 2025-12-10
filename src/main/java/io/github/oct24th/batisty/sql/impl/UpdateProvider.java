@@ -1,6 +1,7 @@
 package io.github.oct24th.batisty.sql.impl;
 
 import io.github.oct24th.batisty.annotation.AutoAudit;
+import io.github.oct24th.batisty.annotation.Ignore;
 import io.github.oct24th.batisty.common.DataContainer;
 import io.github.oct24th.batisty.common.DataStore;
 import io.github.oct24th.batisty.enums.AuditTiming;
@@ -51,7 +52,9 @@ public class UpdateProvider implements SqlProvider {
                     DataContainer dc = ds0.getContainer(key);
                     Field field = dc.getField();
                     if(field.isAnnotationPresent(AutoAudit.class)) excludeAutoAudit.add(field);
-                    SET(converter.getColumnName(field) + " = " + converter.getBindingMarkup(key, field));
+                    if(!field.isAnnotationPresent(Ignore.class)) {
+                        SET(converter.getColumnName(field) + " = " + converter.getBindingMarkup(key, field));
+                    }
                 });
 
                 Arrays.stream(autoAudits)
@@ -69,11 +72,12 @@ public class UpdateProvider implements SqlProvider {
                             })
                         );
 
-
                 DataStore ds1 = proxy.getDataStores().get(1);
                 ds1.keySet().forEach(key -> {
                     DataContainer dc = ds1.getContainer(key);
-                    WHERE(converter.getColumnName(dc.getField()) + " "+dc.getOperator()+" " + converter.getBindingMarkup(key));
+                    if(!dc.getField().isAnnotationPresent(Ignore.class)) {
+                        WHERE(converter.getColumnName(dc.getField()) + " "+dc.getOperator()+" " + converter.getBindingMarkup(key));
+                    }
                 });
             }
         }.toString();
