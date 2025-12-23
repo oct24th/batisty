@@ -25,34 +25,27 @@ MappedStatement에 저장된 SQL은 Mybatis의 기본기능인 XML 혹은 method
 7. returnType="map"인 경우 에도 mapUnderscoreToCamelCase 설정 적용
 8. returnType="map"인 경우 resultType 처리에대한 확장 포인트 제공
 ### 제약사항
-1. Springframework 6.0이상, JDK17이상
-2. Mybatis 3.4.6 이상
-3. sqlSessionTemplate이 복수인경우(복수의 DB를 사용하는경우) 고려되지 않음
+1. springboot 3.x 이상, JDK17이상
+2. sqlSessionTemplate이 복수인경우(복수의 DB를 사용하는경우) 고려되지 않음
 
 ### 변경이력
-#### v4.1.1 
+#### - v4.1.1 
 1. Oracle DB의 Stored Procedure에서 out 변수 처리를 위한 resultMap자동 생성 기능 추가
 2. returnType="map"일때 key에 대한 mapUnderscoreToCamelCase 설정 적용
 3. returnType="map"인 경우 resultType 처리에대한 확장 포인트 추가
 
 - snake_case ↔ camelCase 변환의 일관성 유지를 위해 org.springframework:spring-jdbc에 포함된 JdbcUtils를 사용하면서
 springframework 및 jdk 버전이 springframework 6.0이상 jdk이상으로 변경됨
-#### v3.0.1
+#### - v3.0.1
 1. INSERT 시 SelectKey, UseGeneratedKeys 기능 추가
 2. 직접 작성한 SELECT 쿼리에 대한 페이징 기능 추가
-#### v2.0.0
-최초배포
+#### - v2.0.0
+- 최초배포
 
 ### 기본 설정
 Springboot 어플리케이션의 시작지점이 되는 Main 클래스의 @SpringBootApplication에 scanBasePackages 설정 필요
 
 해당 설정의 디폴트는 Main 클래스가 위치한 패키지이기 때문에 **io.github.oct24th.batisty**를 추가해주어야 Batisty에서 사용하는 Bean을 스캔한다.
-
-org.mybatis.spring.boot:mybatis-spring-boot-starter 사용시 확장 포인트에대한 구현체를 @Component를 이용해 스프링 Bean으로 등록해주면 되고
-
-수동으로 설정시에는 sqlSessionFactoryBean설정시 PreparedStatementInterceptor를 플러그인으로 등록해주고 CustomMapWrapperFactory를 ObjectWrapperFactory로 등록해주어야한다. 
-
-(org.mybatis.spring.boot:mybatis-spring-boot-starter사용 권장)
 ```
 @SpringBootApplication(scanBasePackages = {"com.example.demo", "io.github.oct24th.batisty"})  //기본패키지에 io.github.oct24th.batisty 추가
 public class DemoApplication {
