@@ -49,11 +49,11 @@ public class ProxyMethodInterceptor implements MethodInterceptor {
             case "getDataStores":
                 return dataStores;
             case "createStatementId":
-                StringBuilder sb = new StringBuilder();
+                StringBuilder sb = new StringBuilder("io.github.oct24th.batisty.sql.");
                 sb.append(((SqlCommandKind) objects[0]).name().charAt(0));
-                sb.append("_");
+                sb.append(".");
                 sb.append(obj.getClass().getSuperclass().getSimpleName());
-                sb.append("_");
+                sb.append(".");
 
                 StringBuilder hash = new StringBuilder();
                 dataStores.forEach(ds ->
@@ -62,8 +62,9 @@ public class ProxyMethodInterceptor implements MethodInterceptor {
                         hash.append("&").append(dc.getOperator()).append(key);
                     })
                 );
-                CharSequence statementId = sb.append(this.complexHash(hash.toString()));
-                return statementId.toString();
+                sb.append(this.complexHash(hash.toString()));
+
+                return sb.toString();
             case "equal":
                 operator = "=";
                 return obj;

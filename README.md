@@ -29,6 +29,10 @@ MappedStatement에 저장된 SQL은 Mybatis의 기본기능인 XML 혹은 method
 2. sqlSessionTemplate이 복수인경우(복수의 DB를 사용하는경우) 고려되지 않음
 
 ### 변경이력
+#### - v4.1.4 
+1. insert 결과를 직렬화할때 proxy객체에 접근하면서 발생하는 오류 수정
+2. io.github.oct24th.batisty.sql 패키지로 실행되는 sql 로깅 가능하도록 수정 
+
 #### - v4.1.1 
 1. Oracle DB의 Stored Procedure에서 out 변수 처리를 위한 resultMap자동 생성 기능 추가
 2. returnType="map"일때 key에 대한 mapUnderscoreToCamelCase 설정 적용

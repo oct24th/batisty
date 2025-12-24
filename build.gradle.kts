@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "io.github.oct24th"
-version = "4.1.3"
+version = "4.1.4"
 
 java {
 	sourceCompatibility = JavaVersion.VERSION_17
@@ -31,7 +31,13 @@ dependencies {
 	compileOnly("org.springframework:spring-jdbc:6.2.3")
 	compileOnly("org.slf4j:slf4j-api:1.7.36")
 	compileOnly("org.mybatis:mybatis-spring:2.1.2")
-	implementation("org.mybatis.spring.boot:mybatis-spring-boot-starter:1.3.2")
+	implementation("org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.4")
+
+    // Spring Web과 호환되는 최신 Jackson 라이브러리
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
+
+    // Java 8 날짜/시간(LocalDateTime 등)을 지원하려면 추가 권장
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.2")
 
 	compileOnly("org.projectlombok:lombok:1.18.26")
 
@@ -55,7 +61,7 @@ mavenPublishing {
 	coordinates( // Coordinate(GAV)
 		groupId = "io.github.oct24th",
 		artifactId = "batisty",
-		version = "4.1.3"
+		version = "4.1.4"
 	)
 
 	pom {
